@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>MindMap Viewer</title>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <style>
+        :root {
+            --bg-color: var(--tg-theme-bg-color, #ffffff);
+            --text-color: var(--tg-theme-text-color, #222222);
+            --hint-color: var(--tg-theme-hint-color, #888888);
+            --accent-color: var(--tg-theme-button-color, #0088cc);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #app {
+            flex-grow: 1;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .status-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .error-msg {
+            color: #ff4f4f;
+            font-size: 14px;
+            margin-top: 10px;
+            word-break: break-all;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .btn-retry {
+            margin-top: 15px;
+            padding: 10px 20px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/markmap-lib@0.15.3/dist/browser/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/markmap-view@0.15.3"></script>
+</head>
+<body>
+
+    <div id="app">
+        <div class="status-container">
+            <div id="status-text">Загрузка интеллект-карты из облака...</div>
+        </div>
+    </div>
+
+    <script>
+        const appDiv = document.getElementById("app");
+
+        // Инициализация Telegram WebApp
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.ready();
+            window.Telegram.WebApp.expand();
+        }
+
+        async function loadAndRender() {
+            const params = new URLSearchParams(window.location.search);
+            // Теперь ожидаем полный путь к файлу в параметре file,
+            // например: ?file=generated_maps/uuid.md
+            const filePath = params.get("file");
+
+            if (!filePath) {
+                appDiv.innerHTML = `
+                    <div class="status-container">
+                        <h3>👋 Карта не выбрана</h3>
+                        <p style="color: var(--hint-color)">Создайте карту в боте.</p>
+                    </div>`;
+                return;
+            }
+
+            try {
+                // Поскольку index.html лежит в том же бакете,
+                // мы просто запрашиваем файл по относительному пути.
+                const response = await fetch('/' + filePath);
+
+                if (!response.ok) {
+                    if (response.status === 403 || response.status === 404) {
+                        throw new Error("Файл не найден. Проверьте настройки публичного доступа в бакете.");
+                    } else {
+                        throw new Error(`Ошибка хранилища S3: ${response.status}`);
+                    }
+                }
+
+                const markdown = await response.text();
+
+                // Очищаем контейнер и создаем SVG
+                appDiv.innerHTML = '<svg id="mindmap-svg"></svg>';
+
+                const { Transformer, Markmap } = window.markmap;
+                const transformer = new Transformer();
+                const { root } = transformer.transform(markdown);
+
+                Markmap.create('#mindmap-svg', null, root);
+
+            } catch (err) {
+                console.error(err);
+                appDiv.innerHTML = `
+                    <div class="status-container">
+                        <div style="font-size: 40px">⚠️</div>
+                        <h3>Не удалось загрузить карту</h3>
+                        <div class="error-msg">${err.message}</div>
+                        <button class="btn-retry" onclick="location.reload()">Повторить</button>
+                        <p style="font-size: 10px; color: var(--hint-color); margin-top: 20px;">
+                            Путь: ${filePath}
+                        </p>
+                    </div>`;
+            }
+        }
+
+        loadAndRender();
+    </script>
+</body>
+</html>

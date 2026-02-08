@@ -1,0 +1,12 @@
+aiogram==3.4.1          # или твоя текущая версия
+python-dotenv==1.0.1
+
+requests==2.32.3
+boto3==1.35.0
+
+pypdf==5.0.0            # работа с PDF
+python-docx==1.1.0      # DOCX
+python-pptx==1.0.2      # PPTX
+
+# опционально, но полезно
+mimetypes-magic==0.5.0  # если захочешь более умный детект MIME-типа
