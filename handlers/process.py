@@ -40,10 +40,7 @@ async def process_handler(message: Message, state: FSMContext):
     # except Exception as e:
     #     print(f"Github Upload Error: {e}")
     #     await message.answer(f"⚠️ Ошибка сохранения в облако: {e}")
-    # --------------------------------------------
-
-    # --- НОВЫЙ БЛОК S3 ---
-    # --- ПОЛНОСТЬЮ ИСПРАВЛЕННЫЙ БЛОК S3 ---
+    
     try:
         await status_message.edit_text("☁️ Сохраняю в S3...")
         
@@ -99,4 +96,5 @@ async def process_handler(message: Message, state: FSMContext):
     await message.answer(
         "Возврат в меню:",
         reply_markup=main_menu_keyboard(last_map_url=app_url)
+
     )
