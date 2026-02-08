@@ -25,8 +25,7 @@ _s3 = _session.resource(
 
 def upload_map_html(local_path: str, object_key: str) -> str:
     """
-    Загружает HTML-файл в Object Storage и возвращает публичный URL.
-    object_key: например 'maps/unique_id.html'
+    Загружает HTML-файл в Object Storage и возвращает публичный URL
     """
     if not os.path.isfile(local_path):
         raise FileNotFoundError(f"Файл не найден: {local_path}")
@@ -47,5 +46,4 @@ def upload_map_html(local_path: str, object_key: str) -> str:
         print(f"Ошибка загрузки в S3: {e}")
         raise e
 
-    # Формируем ссылку на статический сайт
     return f"https://{YC_WEBSITE_HOST}/{object_key}"
