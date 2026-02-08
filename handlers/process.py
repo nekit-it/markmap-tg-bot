@@ -29,6 +29,12 @@ async def process_handler(message: Message, state: FSMContext):
 
     # Генерация контента
     result = generate_markmap(text=text, depth=depth)
+
+    data = await state.get_data()
+    custom_title = data.get("user_title")
+    
+    # Если есть свое название - берем его, иначе - то, что выдал ИИ
+    final_title = custom_title if custom_title else result["title"]
     
     # Генерируем уникальное имя файла
     filename = f"{uuid4()}.md"
@@ -40,7 +46,10 @@ async def process_handler(message: Message, state: FSMContext):
     # except Exception as e:
     #     print(f"Github Upload Error: {e}")
     #     await message.answer(f"⚠️ Ошибка сохранения в облако: {e}")
-    
+    # --------------------------------------------
+
+    # --- НОВЫЙ БЛОК S3 ---
+    # --- ПОЛНОСТЬЮ ИСПРАВЛЕННЫЙ БЛОК S3 ---
     try:
         await status_message.edit_text("☁️ Сохраняю в S3...")
         
@@ -67,7 +76,7 @@ async def process_handler(message: Message, state: FSMContext):
   
     save_map(
         user_id=message.from_user.id,
-        title=result["title"],
+        title=final_title,
         depth=depth,
         structure=result["nodes"],
         markmap=result["markmap"],
@@ -85,7 +94,7 @@ async def process_handler(message: Message, state: FSMContext):
     ])
 
     await message.answer(
-        f"✅ <b>Карта готова: {result['title']}</b>\n\n"
+        f"✅ <b>Карта готова: {final_title}</b>\n\n"
         f"<code>{result['markmap']}</code>",
         reply_markup=inline_kb,
         parse_mode="HTML"
@@ -96,5 +105,4 @@ async def process_handler(message: Message, state: FSMContext):
     await message.answer(
         "Возврат в меню:",
         reply_markup=main_menu_keyboard(last_map_url=app_url)
-
     )
