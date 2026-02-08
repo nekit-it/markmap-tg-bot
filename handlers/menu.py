@@ -5,7 +5,7 @@ from aiogram.filters import Command
 
 from keyboards import main_menu_keyboard
 from states import CreateMap
-from services.storage import get_last_map # Убедись, что эта функция есть в storage.py
+from services.storage import get_last_map 
 
 router = Router()
 
@@ -41,3 +41,4 @@ async def main_menu_handler(message: Message, state: FSMContext):
         # если роутеры подключены в правильном порядке.
         # Оставим pass, чтобы сработал handlers/history.py
         pass 
+
