@@ -50,8 +50,6 @@ def upload_to_s3(md_content: str, filename: str) -> str:
     
     return f"http://{YC_WEBSITE_HOST}/index.html?file={s3_key}"
 
- map_id
-
 def get_user_maps(user_id: int) -> List[dict]:
     return MAP_STORAGE.get(user_id, [])
 
@@ -59,4 +57,5 @@ def get_user_maps(user_id: int) -> List[dict]:
 def get_last_map(user_id: int) -> Optional[dict]:
     maps = MAP_STORAGE.get(user_id) or []
     return maps[-1] if maps else None
+
 
