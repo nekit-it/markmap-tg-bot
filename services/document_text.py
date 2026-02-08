@@ -11,7 +11,7 @@ from aiogram.types import Message
 from config import YANDEX_API_KEY, YANDEX_FOLDER_ID, YANDEX_OCR_URL
 
 
-# ===== ВСПОМОГАТЕЛЬНОЕ: ЗАГРУЗКА ФАЙЛА ИЗ TELEGRAM =====
+# ЗАГРУЗКА ФАЙЛА ИЗ TELEGRAM
 
 async def _download_file_bytes(message: Message) -> bytes:
     """
@@ -36,7 +36,7 @@ async def _download_file_bytes(message: Message) -> bytes:
     return file_bytes.read()
 
 
-# ===== OCR ДЛЯ ИЗОБРАЖЕНИЙ / СКАНОВ =====
+# OCR ДЛЯ ИЗОБРАЖЕНИЙ / СКАНОВ
 
 def _call_ocr(image_bytes: bytes, mime_type: str = "JPEG") -> str:
     """
@@ -85,7 +85,7 @@ def _call_ocr(image_bytes: bytes, mime_type: str = "JPEG") -> str:
     return "\n".join(lines)
 
 
-# ===== ЛОКАЛЬНЫЙ ПАРСИНГ ТЕКСТОВЫХ ФАЙЛОВ =====
+# ЛОКАЛЬНЫЙ ПАРСИНГ ТЕКСТОВЫХ ФАЙЛОВ
 
 def _extract_text_from_pdf(file_bytes: bytes) -> str:
     """
@@ -150,7 +150,7 @@ def _guess_extension(filename: str | None) -> str:
     return Path(filename).suffix.lower()  # ".pdf", ".docx" и т.п.
 
 
-# ===== ОСНОВНАЯ ФУНКЦИЯ ДЛЯ БОТА =====
+# ОСНОВНАЯ ФУНКЦИЯ ДЛЯ БОТА
 
 async def extract_text(message: Message) -> str:
     """
@@ -223,3 +223,4 @@ async def extract_text(message: Message) -> str:
 
     # 3. Ничего не передали
     return "Неизвестный документ"
+
