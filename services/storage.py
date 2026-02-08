@@ -50,18 +50,7 @@ def upload_to_s3(md_content: str, filename: str) -> str:
     
     return f"http://{YC_WEBSITE_HOST}/index.html?file={s3_key}"
 
-def save_map(user_id, title, depth, structure, markmap, url):
-    map_id = str(uuid4())
-    entry = {
-        "id": map_id,
-        "title": title,
-        "depth": depth,
-        "structure": structure,
-        "markmap": markmap,
-        "url": url 
-    }
-    MAP_STORAGE.setdefault(user_id, []).append(entry)
-    return map_id
+ map_id
 
 def get_user_maps(user_id: int) -> List[dict]:
     return MAP_STORAGE.get(user_id, [])
@@ -70,3 +59,4 @@ def get_user_maps(user_id: int) -> List[dict]:
 def get_last_map(user_id: int) -> Optional[dict]:
     maps = MAP_STORAGE.get(user_id) or []
     return maps[-1] if maps else None
+
