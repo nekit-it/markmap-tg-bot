@@ -25,7 +25,8 @@ _s3 = _session.resource(
 
 def upload_map_html(local_path: str, object_key: str) -> str:
     """
-    Загружает HTML-файл в Object Storage и возвращает публичный URL
+    Загружает HTML-файл в Object Storage и возвращает публичный URL.
+    object_key: например 'maps/unique_id.html'
     """
     if not os.path.isfile(local_path):
         raise FileNotFoundError(f"Файл не найден: {local_path}")
@@ -46,4 +47,31 @@ def upload_map_html(local_path: str, object_key: str) -> str:
         print(f"Ошибка загрузки в S3: {e}")
         raise e
 
+    # Формируем ссылку на статический сайт
     return f"https://{YC_WEBSITE_HOST}/{object_key}"
+
+def upload_html_to_s3(html_content: bytes, filename: str) -> str:
+    """Загружает готовый HTML в S3 с правильным заголовком"""
+    session = boto3.session.Session(
+        aws_access_key_id=YC_ACCESS_KEY_ID,
+        aws_secret_access_key=YC_SECRET_ACCESS_KEY,
+        region_name="ru-central1"
+    )
+    s3 = session.client(service_name="s3", endpoint_url=YC_S3_ENDPOINT)
+    
+    # Можно складывать в отдельную папку, например uploaded_html
+    s3_key = f"uploaded_html/{filename}"
+    
+    s3.put_object(
+        Bucket=YC_BUCKET_NAME,
+        Key=s3_key,
+        Body=html_content,
+        ContentType='text/html; charset=utf-8' # Ключевой момент для открытия в WebApp
+    )
+    
+    # Формируем публичную ссылку
+    clean_host = YC_WEBSITE_HOST.replace("https://", "").replace("http://", "").strip("/")
+    
+    # Возвращаем ссылку вида https://site.com/index.html?file=uploaded_html/file.html
+    # ИЛИ, если HTML самодостаточный (не требует viewer'а), прямую ссылку:
+    return f"https://{clean_host}/{s3_key}"
