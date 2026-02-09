@@ -1,5 +1,5 @@
 from aiogram import Router, F
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 
 from services.storage import get_user_maps  
 
@@ -38,8 +38,12 @@ async def open_map_handler(callback: CallbackQuery):
         await callback.answer()
         return
 
-    lines = _flatten_nodes(target["structure"])
-    body = "\n".join(lines) if lines else "Нет данных по структуре."
+    # Проверка на наличие структуры (для HTML импорта она пустая)
+    if target.get("structure"):
+        lines = _flatten_nodes(target["structure"])
+        body = "\n".join(lines) if lines else "Нет данных по структуре."
+    else:
+        body = "📄 (Импортированная HTML-карта)"
 
     text = (
         f"🗺 {target['title']}\n"
@@ -47,5 +51,12 @@ async def open_map_handler(callback: CallbackQuery):
         f"{body}"
     )
 
-    await callback.message.answer(text)
+    # Добавляем кнопку открытия, если есть ссылка
+    reply_markup = None
+    if target.get("url"):
+        reply_markup = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🚀 Открыть карту", web_app=WebAppInfo(url=target["url"]))]
+        ])
+
+    await callback.message.answer(text, reply_markup=reply_markup)
     await callback.answer()
