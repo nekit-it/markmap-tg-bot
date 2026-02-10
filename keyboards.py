@@ -7,7 +7,7 @@ from aiogram.types import (
 )
 from config import YC_WEBSITE_HOST
 
-# Очистка URL
+# --- Вспомогательная функция для очистки URL ---
 def get_clean_webapp_url(url: str = None) -> str:
     """Гарантирует, что ссылка начинается с https:// и содержит правильный хост."""
     clean_host = YC_WEBSITE_HOST.replace("https://", "").replace("http://", "").strip("/")
@@ -22,7 +22,7 @@ def get_clean_webapp_url(url: str = None) -> str:
     
     return url
 
-# Главное меню
+# --- Главное меню ---
 
 def main_menu_keyboard(last_map_url: str = None):
     """
@@ -44,7 +44,7 @@ def main_menu_keyboard(last_map_url: str = None):
         resize_keyboard=True,
     )
 
-# Клавиатуры процесса
+# --- Клавиатуры процесса ---
 
 def depth_keyboard():
     return ReplyKeyboardMarkup(
@@ -59,7 +59,8 @@ def depth_keyboard():
 def llm_keyboard():
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="Авто")],
+            [KeyboardButton(text="YandexGPT 🇷🇺"), KeyboardButton(text="GPT-4o Mini 🤖")],
+            [KeyboardButton(text="Gemini 2.0 Flash ⚡️"), KeyboardButton(text="DeepSeek R1 🐋")],
         ],
         resize_keyboard=True,
     )
@@ -80,7 +81,7 @@ def history_keyboard(maps: list):
         buttons = []
         
         if url:
-            # Исправляем протокол на https для кнопок истории
+            # Исправляем протокол на https на лету для кнопок истории
             safe_url = get_clean_webapp_url(url)
             buttons.append(
                 InlineKeyboardButton(
@@ -98,4 +99,3 @@ def history_keyboard(maps: list):
         keyboard.append(buttons)
 
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
-
