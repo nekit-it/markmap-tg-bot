@@ -15,6 +15,7 @@ router = Router()
 
 @router.message(CreateMap.waiting_for_llm)
 async def process_handler(message: Message, state: FSMContext):
+    selected_model = message.text
     data = await state.get_data()
     depth = data.get("depth", "Средняя")
     source_message = data.get("source_message")
@@ -28,7 +29,7 @@ async def process_handler(message: Message, state: FSMContext):
         pass
 
     # Генерация контента
-    result = generate_markmap(text=text, depth=depth)
+    result = generate_markmap(text=text, depth=depth, model_name=selected_model)
 
     data = await state.get_data()
     custom_title = data.get("user_title")
@@ -39,24 +40,16 @@ async def process_handler(message: Message, state: FSMContext):
     # Генерируем уникальное имя файла
     filename = f"{uuid4()}.md"
 
-    # public_url = None
-    # try:
-    #     await status_message.edit_text("☁️ Сохраняю...")
-    #     public_url = upload_to_github(result["markmap"], filename)
-    # except Exception as e:
-    #     print(f"Github Upload Error: {e}")
-    #     await message.answer(f"⚠️ Ошибка сохранения в облако: {e}")
-
     try:
         await status_message.edit_text("☁️ Сохраняю в S3...")
         
         # Получаем путь (например: generated_maps/uuid.md)
         s3_path = upload_to_s3(result["markmap"], filename)
         
-        # ОЧИСТКА ХОСТА: убираем http/https и лишние слэши
+        # убираем http/https и лишние слэши
         clean_host = YC_WEBSITE_HOST.replace("https://", "").replace("http://", "").strip("/")
         
-        # ОЧИСТКА ПУТИ: если s3_path вдруг вернул полную ссылку, берем только хвост
+        # если s3_path вдруг вернул полную ссылку, берем только хвост
         if "file=" in s3_path:
             s3_path = s3_path.split("file=")[-1]
         elif "http" in s3_path:
@@ -103,4 +96,3 @@ async def process_handler(message: Message, state: FSMContext):
         "Возврат в меню:",
         reply_markup=main_menu_keyboard(last_map_url=app_url)
     )
-
