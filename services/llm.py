@@ -1,7 +1,14 @@
 import json
 import requests
 
-from config import YANDEX_API_KEY, YANDEX_FOLDER_ID, YANDEX_API_URL, YANDEX_OCR_URL, YANDEX_URL
+from config import YANDEX_API_KEY, YANDEX_FOLDER_ID, YANDEX_API_URL, YANDEX_OCR_URL, YANDEX_URL, OPENROUTER_API_KEY, OPENROUTER_API_URL
+
+MODEL_MAPPING = {
+    "YandexGPT 🇷🇺": "yandexgpt",
+    "GPT-4o Mini 🤖": "openai/gpt-4o-mini",
+    "Gemini 2.0 Flash ⚡️": "google/gemini-3-flash-preview",
+    "DeepSeek R1 🐋": "arcee-ai/trinity-large-preview:free",
+}
 
 SYSTEM_PROMPT = """
 Ты помощник, который строит структурированную интеллект-карту (mindmap) документа.
@@ -39,36 +46,18 @@ DEPTH_HINTS = {
 }
 
 
-def generate_markmap(text: str, depth: str) -> dict:
-    """
-    Возвращает dict:
-    {
-      "title": str,
-      "nodes": [...],   # список узлов (dict)
-      "flat": [...],    # плоский список строк для чата
-      "markmap": str    # markdown для Markmap
-    }
-    """
-
-    prompt = f"""
-Контекст документа:
-{text}
-
-Глубина анализа: {DEPTH_HINTS.get(depth, "")}
-"""
-
+def generate_with_yandex(prompt):
     headers = {
         "Authorization": f"Api-Key {YANDEX_API_KEY}",
         "Content-Type": "application/json",
         "x-folder-id": YANDEX_FOLDER_ID,
     }
-
     body = {
         "modelUri": YANDEX_URL,
         "completionOptions": {
             "stream": False,
             "temperature": 0.3,
-            "maxTokens": "1024",
+            "maxTokens": "2000",
         },
         "messages": [
             {"role": "system", "text": SYSTEM_PROMPT},
@@ -76,20 +65,69 @@ def generate_markmap(text: str, depth: str) -> dict:
         ],
         "jsonObject": True,
     }
-
     resp = requests.post(YANDEX_API_URL, headers=headers, data=json.dumps(body))
-    print("YANDEX RESPONSE:", resp.status_code, resp.text)
     resp.raise_for_status()
-
     data = resp.json()
+    return data["result"]["alternatives"][0]["message"]["text"]
+
+def generate_with_openrouter(prompt, model_id):
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://telegram.org", # Требование OpenRouter
+        "X-Title": "MapBot",
+    }
+    
+    # Для DeepSeek R1 лучше не использовать json_object, он сам справляется,
+    # но для остальных (GPT, Gemini) это повышает стабильность.
+    response_format = {"type": "json_object"} if "deepseek" not in model_id else None
+
+    body = {
+        "model": model_id,
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": prompt},
+        ],
+        "temperature": 0.3,
+        "response_format": response_format
+    }
+
+    resp = requests.post(OPENROUTER_API_URL, headers=headers, data=json.dumps(body))
+    
+    if resp.status_code != 200:
+        print(f"OpenRouter Error: {resp.text}")
+        
+    resp.raise_for_status()
+    data = resp.json()
+    return data["choices"][0]["message"]["content"]
+
+
+def generate_markmap(text: str, depth: str, model_name: str = "YandexGPT 🇷🇺") -> dict:
+    """
+    Возвращает dict с структурой карты.
+    model_name: текст с кнопки (ключ из MODEL_MAPPING)
+    """
+    prompt = f"""
+Контекст документа:
+{text}
+
+Глубина анализа: {DEPTH_HINTS.get(depth, "")}
+"""
+    
+    model_id = MODEL_MAPPING.get(model_name, "yandexgpt")
+    print(f"Using model: {model_name} -> {model_id}")
 
     try:
-        alt = data["result"]["alternatives"][0]
-        content = alt["message"]["text"]
-        print("RAW LLM CONTENT:", repr(content))
+        if model_id == "yandexgpt":
+            content = generate_with_yandex(prompt)
+        else:
+            content = generate_with_openrouter(prompt, model_id)
 
-        # Парсим JSON
-        obj = json.loads(content)
+        print("RAW LLM CONTENT:", repr(content))
+        
+        # Очистка markdown блоков json, если они есть
+        clean_content = content.replace("```json", "").replace("```", "").strip()
+        obj = json.loads(clean_content)
 
         title = obj.get("title") or "Без названия"
         nodes = obj.get("nodes") or []
@@ -107,15 +145,9 @@ def generate_markmap(text: str, depth: str) -> dict:
             walk(n, level=0)
 
         if not flat_lines:
-            flat_lines = [
-                "- Введение",
-                "- Ключевые идеи",
-                "- Основные пункты",
-                "- Выводы",
-            ]
+            flat_lines = ["- Ошибка структуры данных"]
 
         # Markmap markdown
-        # https://markmap.js.org/repl
         markmap_lines = [f"# {title}"]
 
         def walk_markmap(node, level=1):
@@ -127,16 +159,6 @@ def generate_markmap(text: str, depth: str) -> dict:
         for n in nodes:
             walk_markmap(n, level=1)
 
-        if len(markmap_lines) == 1:  # только заголовок
-            markmap_lines.extend(
-                [
-                    "  - Введение",
-                    "  - Ключевые идеи",
-                    "  - Основные пункты",
-                    "  - Выводы",
-                ]
-            )
-
         return {
             "title": title,
             "nodes": nodes,
@@ -145,16 +167,10 @@ def generate_markmap(text: str, depth: str) -> dict:
         }
 
     except Exception as e:
-        print("PARSE ERROR:", e)
-        # Полный fallback
+        print("PARSE/GENERATE ERROR:", e)
         return {
             "title": "Ошибка генерации",
             "nodes": [],
-            "flat": [
-                "- Введение",
-                "- Ключевая идея",
-                "- Основные пункты",
-                "- Выводы",
-            ],
-            "markmap": "# Ошибка генерации\n  - Введение\n  - Ключевая идея\n  - Основные пункты\n  - Выводы",
+            "flat": ["- Произошла ошибка при обращении к нейросети"],
+            "markmap": "# Ошибка генерации\n  - Попробуйте другую модель",
         }
