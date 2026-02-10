@@ -24,3 +24,7 @@ YC_WEBSITE_HOST = os.getenv(
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 NETLIFY_URL = os.getenv("NETLIFY_URL")  
 GITHUB_REPO = os.getenv("GITHUB_REPO")  
+
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_API_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+OPENROUTER_DEFAULT_MODEL = os.getenv("OPENROUTER_DEFAULT_MODEL", "openai/gpt-4.1-mini")
